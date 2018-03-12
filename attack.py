@@ -96,8 +96,8 @@ def attack(img, label, net, target=None, pixels=1, maxiter=75, popsize=400, verb
 	predicted_class = np.argmax(predicted_probs)
 
 	if (not targeted_attack and predicted_class != label) or (targeted_attack and predicted_class == target_calss):
-		return 1
-	return 0
+		return 1, attack_result.x.astype(int)
+	return 0, [None]
 
 
 def attack_all(net, loader, pixels=1, targeted=False, maxiter=75, popsize=400, verbose=False):
@@ -124,16 +124,22 @@ def attack_all(net, loader, pixels=1, targeted=False, maxiter=75, popsize=400, v
 				if (target_calss == target[0]):
 					continue
 			
-			result = attack(input, target[0], net, target_calss, pixels=pixels, maxiter=maxiter, popsize=popsize, verbose=verbose)
+			flag, x = attack(input, target[0], net, target_calss, pixels=pixels, maxiter=maxiter, popsize=popsize, verbose=verbose)
 
-			success += result
-			if result == 1:
-				print "success rate: %.4f (%d/%d)"%(float(success)/correct, success, correct)
+			success += flag
+			if (targeted):
+				success_rate = float(success)/(9*correct)
+			else:
+				success_rate = float(success)/correct
+
+			if flag == 1:
+				print "success rate: %.4f (%d/%d) [(x,y) = (%d,%d) and (R,G,B)=(%d,%d,%d)]"%(
+					success_rate, success, correct, x[0],x[1],x[2],x[3],x[4])
 		
 		if correct == args.samples:
 			break
 
-	return float(success)/correct
+	return success_rate
 
 def main():
 
