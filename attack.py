@@ -77,7 +77,7 @@ def attack(img, label, net, target=None, pixels=1, maxiter=75, popsize=400, verb
 	targeted_attack = target is not None
 	target_calss = target if targeted_attack else label
 
-	bounds = [(0,32), (0,32), (0,256), (0,256), (0,256)] * pixels
+	bounds = [(0,32), (0,32), (0,255), (0,255), (0,255)] * pixels
 
 	popmul = max(1, popsize/len(bounds))
 
@@ -86,8 +86,17 @@ def attack(img, label, net, target=None, pixels=1, maxiter=75, popsize=400, verb
 	callback_fn = lambda x, convergence: attack_success(
 		x, img, target_calss, net, targeted_attack, verbose)
 
+	inits = np.zeros([popmul*len(bounds), len(bounds)])
+	for init in inits:
+		for i in range(pixels):
+			init[i*5+0] = np.random.random()*32
+			init[i*5+1] = np.random.random()*32
+			init[i*5+2] = np.random.normal(128,127)
+			init[i*5+3] = np.random.normal(128,127)
+			init[i*5+4] = np.random.normal(128,127)
+
 	attack_result = differential_evolution(predict_fn, bounds, maxiter=maxiter, popsize=popmul,
-		recombination=1, atol=-1, callback=callback_fn, polish=False)
+		recombination=1, atol=-1, callback=callback_fn, polish=False, init=inits)
 
 	attack_image = perturb_image(attack_result.x, img)
 	attack_var = Variable(attack_image, volatile=True).cuda()
